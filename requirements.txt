@@ -1,0 +1,3 @@
+aiodns==1.0.0
+bencodepy==0.9.5
+pycares==1.0.0
