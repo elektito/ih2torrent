@@ -571,6 +571,7 @@ def main(loop, infohash, filename):
         'nodes': n,
         'info': full_metadata
     }
+    print(filename)
     with open(filename, 'wb') as f:
         f.write(bencode(torrent))
 
@@ -587,10 +588,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    args.infohash = a2b_hex(args.infohash)
-
-    if args.file == '':
+    if not args.file:
         args.file = args.infohash + '.torrent'
+
+    args.infohash = a2b_hex(args.infohash)
 
     logger = logging.getLogger('ih2torrent')
     handler = StreamHandler(sys.stdout)
