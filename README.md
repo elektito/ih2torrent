@@ -5,7 +5,8 @@ ih2torrent
 uses BitTorrent [DHT][1] and the [metadata protocol][2] to find peers for the
 torrent and obtain its metadata.
 
-You need Python 3.4.3 or higher to run ih2torrent.
+You need Python 3.4.3 or higher to run ih2torrent. In order to get the
+dependencies inside a virtualenv, run `make`.
 
 [1]: http://www.bittorrent.org/beps/bep_0005.html
 [2]: http://www.bittorrent.org/beps/bep_0009.html
