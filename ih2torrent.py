@@ -571,7 +571,6 @@ def main(loop, infohash, filename):
         'nodes': n,
         'info': full_metadata
     }
-    print(filename)
     with open(filename, 'wb') as f:
         f.write(bencode(torrent))
 
