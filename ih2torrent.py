@@ -397,9 +397,7 @@ def get_peers(loop, host, port, infohash):
                 break
 
         transport.close()
-        if protocol.reply_received.is_set():
-            logger.debug('get_peers: done.')
-        else:
+        if not protocol.reply_received.is_set():
             logger.debug('get_peers: No reply received.')
             return
 
