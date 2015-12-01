@@ -540,6 +540,8 @@ def get_closest_nodes(k, infohash):
 def main(loop, infohash, filename):
     global keep_running
 
+    logger.info('Using node ID: {}'.format(hexlify(nodeid).decode()))
+
     # Use router.bittorrent.com as the bootstrapping node.
     logger.info('Using router.bittorrent.com as the bootstrapping node.')
     ip = yield from dns_resolve(loop, 'router.bittorrent.com')
