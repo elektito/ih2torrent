@@ -432,7 +432,7 @@ def get_metadata(loop, host, port, infohash):
     global metadata, metadata_size, keep_running, full_metadata, get_metadatas_in_progress
 
     if not keep_running:
-        return
+        return True
 
     get_metadatas_in_progress += 1
 
@@ -444,7 +444,7 @@ def get_metadata(loop, host, port, infohash):
                 lambda: BitTorrentProtocol(infohash, nodeid), host, port)
         except OSError as e:
             logger.debug('Connection error: {}'.format(e))
-            return
+            return False
 
         logger.debug('Connected to peer: {}:{}'.format(host, port))
 
@@ -460,7 +460,7 @@ def get_metadata(loop, host, port, infohash):
         if not done or protocol.error.is_set():
             logger.debug('Error communicating with the peer while waiting for the handshake.')
             transport.close()
-            return
+            return False
 
         done, pending = yield from asyncio.wait(
             [protocol.extended_handshake_complete.wait(),
@@ -474,7 +474,7 @@ def get_metadata(loop, host, port, infohash):
         if not done or protocol.error.is_set():
             logger.debug('Error communicating with the peer while waiting for the extended handshake.')
             transport.close()
-            return
+            return False
 
         if metadata_size > 0 and metadata_size != protocol.metadata_size:
             logger.warning('Inconsistent metadata size received.')
@@ -491,7 +491,7 @@ def get_metadata(loop, host, port, infohash):
                          if i not in [m[0] for m in metadata])
             except StopIteration as e:
                 transport.close()
-                return
+                return True
 
             protocol.get_metadata_block(i)
 
@@ -507,7 +507,7 @@ def get_metadata(loop, host, port, infohash):
             if not done or protocol.error.is_set():
                 logger.debug('Error communicating with the peer while waiting for metadata block.')
                 transport.close()
-                return
+                return False
 
             metadata.add((i, protocol.metadata_block))
 
@@ -522,13 +522,24 @@ def get_metadata(loop, host, port, infohash):
                     logger.debug('Invalid metadata received. Hash does not checkout. Discarding.')
                     metadata_size = 0
                     metadata = set()
-                    return
+                    return False
 
                 logger.info('Metadata received.')
                 full_metadata = bdecode(full_metadata)
                 keep_running = False
     finally:
         get_metadatas_in_progress  -= 1
+
+    return True
+
+@asyncio.coroutine
+def get_metadata_with_retries(loop, host, port, infohash):
+    for i in range(RETRIES):
+        ret = yield from get_metadata(loop, host, port, infohash)
+        if ret:
+            break
+
+        logger.debug('Retrying get_metadata...')
 
 def get_closest_nodes(k, infohash):
     def distance(i, ih):
@@ -555,7 +566,8 @@ def main(loop, infohash, filename):
             while values.qsize() > 0:
                 peer = yield from values.get()
                 host, port = inet_ntoa(peer[:4]), struct.unpack('!H', peer[4:])[0]
-                loop.create_task(get_metadata(loop, host, port, infohash))
+                loop.create_task(
+                    get_metadata_with_retries(loop, host, port, infohash))
         elif get_peers_in_progress < 100 and get_metadatas_in_progress < 100 and nodes.qsize() > 0:
             peer = yield from nodes.get()
             host, port = inet_ntoa(peer[:4]), struct.unpack('!H', peer[4:])[0]
