@@ -7,12 +7,14 @@ import logging
 import struct
 import hashlib
 import argparse
+import binascii
 import aiodns
+from base64 import b32decode, b16decode
 from concurrent.futures import FIRST_COMPLETED, CancelledError
 from logging import StreamHandler
 from socket import inet_aton, inet_ntoa
 from random import randint
-from binascii import hexlify, a2b_hex
+from binascii import hexlify
 from bencodepy import encode as bencode, decode as bdecode, DecodingError
 
 HANDSHAKE = 1
@@ -612,10 +614,12 @@ def main(loop, infohash, filename):
 if __name__ == '__main__':
     nodeid = os.urandom(20)
 
-    parser = argparse.ArgumentParser(description='Convert an infohash into a trackerless torrent file.')
+    parser = argparse.ArgumentParser(
+        description='Convert an infohash into a trackerless torrent file.')
 
     parser.add_argument('infohash', type=str,
-                        help='The infohash of the torrent.')
+                        help='The infohash of the torrent. Both base16 and '
+                        'base32 formatted infohashes are acceptable.')
     parser.add_argument('--file', '-f', type=str,
                         help='The name of the output torrent file. Defaults '
                         'to the infohash with a .torrent extension.')
@@ -625,7 +629,20 @@ if __name__ == '__main__':
     if not args.file:
         args.file = args.infohash + '.torrent'
 
-    args.infohash = a2b_hex(args.infohash)
+    args.infohash = args.infohash.upper()
+
+    try:
+        args.infohash = b32decode(args.infohash)
+    except binascii.Error:
+        try:
+            args.infohash = b16decode(args.infohash)
+        except binascii.Error:
+            print('Invalid infohash.')
+            exit(1)
+
+    if len(args.infohash) != 20:
+        print('Invalid infohash.')
+        exit(1)
 
     nodes = SortedQueue(args.infohash)
 
