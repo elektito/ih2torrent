@@ -23,8 +23,30 @@ MESSAGE_PAYLOAD = 4
 class SetQueue(asyncio.Queue):
     def _init(self, maxsize):
         self._queue = set()
+
     def _put(self, item):
         self._queue.add(item)
+
+    def _get(self):
+        return self._queue.pop()
+
+# A SortedQueue is constructed from an infohash, internally it removes
+# duplicates, sorts items put into it based on their distance to the
+# given infohash and yields the closer ones to the infohash first when
+# asked.
+class SortedQueue(asyncio.Queue):
+    def __init__(self, infohash):
+        super(SortedQueue, self).__init__()
+        self.infohash = infohash
+
+    def _init(self, maxsize):
+        self._queue = []
+
+    def _put(self, item):
+        if item not in self._queue:
+            self._queue.append(item)
+            self._queue.sort(key=lambda i: -distance(i, self.infohash))
+
     def _get(self):
         return self._queue.pop()
 
@@ -33,7 +55,7 @@ RETRIES = 2
 
 resolver = None
 nodeid = None
-nodes = SetQueue()
+nodes = None
 values = SetQueue()
 all_peers = set()
 metadata_size = 0
@@ -541,10 +563,11 @@ def get_metadata_with_retries(loop, host, port, infohash):
 
         logger.debug('Retrying get_metadata...')
 
+def distance(i, ih):
+    byte_distance = lambda x, y: bin(x ^ y).count('1')
+    return sum(byte_distance(b1, b2) for b1, b2 in zip(ih, i))
+
 def get_closest_nodes(k, infohash):
-    def distance(i, ih):
-        byte_distance = lambda x, y: bin(x ^ y).count('1')
-        return sum(byte_distance(b1, b2) for b1, b2 in zip(ih, i))
     return sorted(all_peers, key=lambda x: distance(x, infohash))[:k]
 
 @asyncio.coroutine
@@ -603,6 +626,8 @@ if __name__ == '__main__':
         args.file = args.infohash + '.torrent'
 
     args.infohash = a2b_hex(args.infohash)
+
+    nodes = SortedQueue(args.infohash)
 
     logger = logging.getLogger('ih2torrent')
     handler = StreamHandler(sys.stdout)
