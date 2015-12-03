@@ -605,16 +605,17 @@ def main(loop, infohash, filename):
                 logger.info('Nothing more to do. Quitting.')
                 keep_running = False
 
-    k = 8
-    n = get_closest_nodes(k, infohash)
-    n = [[inet_ntoa(p[:4]), struct.unpack('!H', p[4:])[0]]
-         for p in n]
-    torrent = {
-        'nodes': n,
-        'info': full_metadata
-    }
-    with open(filename, 'wb') as f:
-        f.write(bencode(torrent))
+    if full_metadata:
+        k = 8
+        n = get_closest_nodes(k, infohash)
+        n = [[inet_ntoa(p[:4]), struct.unpack('!H', p[4:])[0]]
+             for p in n]
+        torrent = {
+            'nodes': n,
+            'info': full_metadata
+        }
+        with open(filename, 'wb') as f:
+            f.write(bencode(torrent))
 
 if __name__ == '__main__':
     nodeid = os.urandom(20)
