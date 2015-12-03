@@ -600,6 +600,11 @@ def main(loop, infohash, filename):
         else:
             yield
 
+            if get_peers_in_progress == 0 and get_metadatas_in_progress == 0 \
+               and nodes.qsize() == 0 and values.qsize() == 0:
+                logger.info('Nothing more to do. Quitting.')
+                keep_running = False
+
     k = 8
     n = get_closest_nodes(k, infohash)
     n = [[inet_ntoa(p[:4]), struct.unpack('!H', p[4:])[0]]
