@@ -9,6 +9,7 @@ import hashlib
 import argparse
 import binascii
 import aiodns
+from urllib.parse import urlparse, parse_qs
 from base64 import b32decode, b16decode
 from concurrent.futures import FIRST_COMPLETED, CancelledError
 from logging import StreamHandler
@@ -625,12 +626,26 @@ if __name__ == '__main__':
 
     parser.add_argument('infohash', type=str,
                         help='The infohash of the torrent. Both base16 and '
-                        'base32 formatted infohashes are acceptable.')
+                        'base32 formatted infohashes are acceptable. You can '
+                        'also pass a magnet use a magnet URI for this argument.')
     parser.add_argument('--file', '-f', type=str,
                         help='The name of the output torrent file. Defaults '
                         'to the infohash with a .torrent extension.')
 
     args = parser.parse_args()
+
+    if args.infohash.startswith('magnet:'):
+        scheme, netloc, path, params, query, fragment = urlparse(args.infohash)
+        qs = parse_qs(query)
+        v = qs.get('xt', None)
+        if v == None or v == []:
+            print('Invalid magnet URI: no "xt" query parameter.')
+            exit(1)
+        v = v[0]
+        if not v.startswith('urn:btih:'):
+            print('Invalid magnet URI: "xt" value not valid for BitTorrent.')
+            exit(1)
+        args.infohash = v[len('urn:btih:'):]
 
     if not args.file:
         args.file = args.infohash + '.torrent'
