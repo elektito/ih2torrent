@@ -627,7 +627,7 @@ def main():
     parser.add_argument('infohash', type=str,
                         help='The infohash of the torrent. Both base16 and '
                         'base32 formatted infohashes are acceptable. You can '
-                        'also pass a magnet use a magnet URI for this argument.')
+                        'also pass a magnet URI for this argument.')
     parser.add_argument('--file', '-f', type=str,
                         help='The name of the output torrent file. Defaults '
                         'to the infohash with a .torrent extension.')
