@@ -12,5 +12,7 @@ at the end of the program. This doesn't seem to have any negative
 effect on the working of the program though. With Python 3.5 there
 doesn't seem to be such a problem.
 
+You can use pip to install ih2torrent: `pip3 install ih2torrent`
+
 [1]: http://www.bittorrent.org/beps/bep_0005.html
 [2]: http://www.bittorrent.org/beps/bep_0009.html
