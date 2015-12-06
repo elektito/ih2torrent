@@ -1,2 +1,6 @@
 venv/
 *.torrent
+MANIFEST
+README.rst
+build/
+dist/
