@@ -21,13 +21,13 @@ setup(
     name = 'ih2torrent',
     py_modules = ["ih2torrent"],
     install_requires = requirements,
-    version = '0.1',
-    description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol.',
+    version = '0.1.1',
+    description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',
     author = 'Mostafa Razavi',
     author_email = 'mostafa@sepent.com',
     url = 'https://github.com/elektito/ih2torrent',
-    download_url = 'https://github.com/elektito/ih2torrent/tarball/0.1',
-    keywords = ['bittorrent', 'torrent', 'infohash', 'magnet', 'dht', 'metadata', 'metainfo'],
+    download_url = 'https://github.com/elektito/ih2torrent/tarball/0.1.1',
+    keywords = ['bittorrent', 'torrent', 'infohash', 'magnet', 'dht', 'metadata', 'metainfo', 'asyncio'],
     classifiers = [
         "Programming Language :: Python :: 3"
     ],
