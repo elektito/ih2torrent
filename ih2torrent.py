@@ -618,7 +618,7 @@ def main(loop, infohash, filename):
         with open(filename, 'wb') as f:
             f.write(bencode(torrent))
 
-if __name__ == '__main__':
+def main():
     nodeid = os.urandom(20)
 
     parser = argparse.ArgumentParser(
@@ -694,3 +694,6 @@ if __name__ == '__main__':
         pass
 
     loop.close()
+
+if __name__ == '__main__':
+    main()
