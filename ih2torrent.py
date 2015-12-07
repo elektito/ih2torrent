@@ -56,6 +56,7 @@ class SortedQueue(asyncio.Queue):
 TIMEOUT = 5
 RETRIES = 2
 
+logger = None
 resolver = None
 nodeid = None
 nodes = None
@@ -281,7 +282,8 @@ class DhtProtocol:
                  infohash=None,
                  implied_port=None,
                  port=None,
-                 token=None):
+                 token=None,
+                 loop=None):
         self.query_type = query_type
         self.nodeid = nodeid
         self.target = target
@@ -374,7 +376,7 @@ class DhtProtocol:
 def ping(loop, host, port):
     try:
         transport, protocol = yield from loop.create_datagram_endpoint(
-            lambda: DhtProtocol('ping', nodeid=nodeid),
+            lambda: DhtProtocol('ping', nodeid=nodeid, loop=loop),
             remote_addr=(host, port))
     except OSError as e:
         logger.debug('Error opening socket for "ping": {}'.format(e))
@@ -619,6 +621,8 @@ def ih2torrent(loop, infohash, filename):
             f.write(bencode(torrent))
 
 def main():
+    global logger, resolver, nodeid, nodes
+
     nodeid = os.urandom(20)
 
     parser = argparse.ArgumentParser(
