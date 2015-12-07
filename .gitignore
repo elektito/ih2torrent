@@ -4,3 +4,4 @@ MANIFEST
 README.rst
 build/
 dist/
+__pycache__/
