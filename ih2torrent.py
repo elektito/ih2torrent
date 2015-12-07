@@ -19,6 +19,8 @@ from random import randint
 from binascii import hexlify
 from bencodepy import encode as bencode, decode as bdecode, DecodingError
 
+__version__ = '0.1.3'
+
 HANDSHAKE = 1
 MESSAGE_LEN = 2
 MESSAGE_TYPE = 3

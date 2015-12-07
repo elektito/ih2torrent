@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from ih2torrent import __version__ as version
 from distutils.core import setup
 from pip.req import parse_requirements
 from pip.download import PipSession
@@ -21,12 +22,12 @@ setup(
     name = 'ih2torrent',
     py_modules = ["ih2torrent"],
     install_requires = requirements,
-    version = '0.1.2',
+    version = version,
     description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',
     author = 'Mostafa Razavi',
     author_email = 'mostafa@sepent.com',
     url = 'https://github.com/elektito/ih2torrent',
-    download_url = 'https://github.com/elektito/ih2torrent/tarball/0.1.1',
+    download_url = 'https://github.com/elektito/ih2torrent/tarball/' + version,
     keywords = ['bittorrent', 'torrent', 'infohash', 'magnet', 'dht', 'metadata', 'metainfo', 'asyncio'],
     classifiers = [
         "Programming Language :: Python :: 3"
