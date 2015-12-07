@@ -574,7 +574,7 @@ def get_closest_nodes(k, infohash):
     return sorted(all_peers, key=lambda x: distance(x, infohash))[:k]
 
 @asyncio.coroutine
-def main(loop, infohash, filename):
+def ih2torrent(loop, infohash, filename):
     global keep_running
 
     logger.info('Using node ID: {}'.format(hexlify(nodeid).decode()))
@@ -678,7 +678,7 @@ def main():
     try:
         loop = asyncio.get_event_loop()
         resolver = aiodns.DNSResolver(loop=loop)
-        loop.run_until_complete(main(loop, args.infohash, args.file))
+        loop.run_until_complete(ih2torrent(loop, args.infohash, args.file))
     except KeyboardInterrupt:
         print()
         print('Letting the remaining tasks finish before termination.')
