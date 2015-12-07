@@ -8,6 +8,7 @@ import struct
 import hashlib
 import argparse
 import binascii
+import ipaddress
 import aiodns
 from urllib.parse import urlparse, parse_qs
 from base64 import b32decode, b16decode
@@ -576,16 +577,38 @@ def get_closest_nodes(k, infohash):
     return sorted(all_peers, key=lambda x: distance(x, infohash))[:k]
 
 @asyncio.coroutine
-def ih2torrent(loop, infohash, filename):
+def ih2torrent(loop, infohash, filename, bootstrap):
     global keep_running
 
     logger.info('Using node ID: {}'.format(hexlify(nodeid).decode()))
 
-    # Use router.bittorrent.com as the bootstrapping node.
-    logger.info('Using router.bittorrent.com as the bootstrapping node.')
-    ip = yield from dns_resolve(loop, 'router.bittorrent.com')
-    logger.info('Resolved to: {}'.format(ip))
-    yield from nodes.put(inet_aton(ip) + struct.pack('!H', 6881))
+    # Add bootstrapping nodes.
+    if bootstrap == []:
+        logger.info('Using router.bittorrent.com as the bootstrapping node.')
+        ip = yield from dns_resolve(loop, 'router.bittorrent.com')
+        logger.info('Resolved to: {}'.format(ip))
+        yield from nodes.put(inet_aton(ip) + struct.pack('!H', 6881))
+    else:
+        unresolved = []
+        for host, port in bootstrap:
+            try:
+                parsed = ipaddress.ip_address(host)
+                if type(parsed) != ipaddress.IPv4Address:
+                    raise ValueError(
+                        'Bootstrap node {} not an IPv4 address or hostname.'
+                        .format(host))
+                yield from nodes.put(inet_aton(host) + port.to_bytes(2, byteorder='big'))
+            except ValueError:
+                unresolved.append((host, port))
+
+        if len(unresolved) > 0:
+            logger.info('Resolving {} host name(s).'.format(len(unresolved)))
+            tasks = [dns_resolve(loop, host) for host, port in bootstrap]
+            ips = yield from asyncio.gather(*tasks)
+            for ip, (host, port) in zip(ips, unresolved):
+                yield from nodes.put(inet_aton(ip) +
+                                     port.to_bytes(2, byteorder='big'))
+
 
     # Recursively search for peers.
     keep_running = True
@@ -620,6 +643,21 @@ def ih2torrent(loop, infohash, filename):
         with open(filename, 'wb') as f:
             f.write(bencode(torrent))
 
+def node_type(value):
+    if len(value.split(':')) != 2:
+        raise ValueError()
+
+    host, port = value.split(':')
+    port = int(port)
+
+    if port < 0 or port > 0xffff:
+        raise ValueError()
+
+    if len(host) == 0:
+        raise ValueError()
+
+    return host, port
+
 def main():
     global logger, resolver, nodeid, nodes
 
@@ -635,6 +673,10 @@ def main():
     parser.add_argument('--file', '-f', type=str,
                         help='The name of the output torrent file. Defaults '
                         'to the infohash with a .torrent extension.')
+    parser.add_argument('--bootstrap', '-b', metavar='HOST:PORT', default=[],
+                        type=node_type, action='append',
+                        help='Add a bootstrapping node. Can be used multiple '
+                        'times to add multiple nodes.')
 
     args = parser.parse_args()
 
@@ -682,7 +724,7 @@ def main():
     try:
         loop = asyncio.get_event_loop()
         resolver = aiodns.DNSResolver(loop=loop)
-        loop.run_until_complete(ih2torrent(loop, args.infohash, args.file))
+        loop.run_until_complete(ih2torrent(loop, args.infohash, args.file, args.bootstrap))
     except KeyboardInterrupt:
         print()
         print('Letting the remaining tasks finish before termination.')
