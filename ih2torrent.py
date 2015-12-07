@@ -679,6 +679,8 @@ def main():
                         type=node_type, action='append',
                         help='Add a bootstrapping node. Can be used multiple '
                         'times to add multiple nodes.')
+    parser.add_argument('--version', action='version',
+                        version='ih2torrent v' + __version__)
 
     args = parser.parse_args()
 
