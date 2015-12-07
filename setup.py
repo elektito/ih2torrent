@@ -21,7 +21,7 @@ setup(
     name = 'ih2torrent',
     py_modules = ["ih2torrent"],
     install_requires = requirements,
-    version = '0.1.1',
+    version = '0.1.2',
     description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',
     author = 'Mostafa Razavi',
     author_email = 'mostafa@sepent.com',
