@@ -1,9 +1,9 @@
 ih2torrent
 ==========
 
-`ih2torrent` creates a trackerless torrent file from an infohash. It
-uses BitTorrent [DHT][1] and the [metadata protocol][2] to find peers for the
-torrent and obtain its metadata.
+`ih2torrent` creates a trackerless torrent file from an infohash or a
+magnet URI. It uses BitTorrent [DHT][1] and the [metadata protocol][2]
+to find peers for the torrent and obtain its metadata.
 
 In order to get the dependencies inside a virtualenv, run `make`. You
 need Python 3.4.3 or higher to run ih2torrent. Notice that for some
