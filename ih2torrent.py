@@ -19,7 +19,7 @@ from random import randint
 from binascii import hexlify
 from bencodepy import encode as bencode, decode as bdecode, DecodingError
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 HANDSHAKE = 1
 MESSAGE_LEN = 2
@@ -578,6 +578,29 @@ def distance(i, ih):
 def get_closest_nodes(k, infohash):
     return sorted(all_peers, key=lambda x: distance(x, infohash))[:k]
 
+def print_torrent(torrent):
+    indent = '    '
+
+    print('Nodes:')
+    for host, port in torrent['nodes']:
+        print('{}{}:{}'.format(indent, host, port))
+
+    info = torrent['info']
+    npieces = len(info[b'pieces'])
+    print()
+    print('Info:')
+    print(indent + 'Name:', info[b'name'].decode())
+    print(indent + 'Piece Length:', info[b'piece length'])
+    print(indent + 'Pieces:', npieces)
+    if b'length' in info:
+        print(indent + 'Length:', info[b'length'])
+    else:
+        print(indent + 'Files:')
+        for f in info[b'files']:
+            filename = b'/'.join(f[b'path']).decode()
+            length = f[b'length']
+            print('{}{}: {} byte(s)'.format(2 * indent, filename, length))
+
 @asyncio.coroutine
 def ih2torrent(loop, infohash, filename, bootstrap):
     global keep_running
@@ -642,8 +665,13 @@ def ih2torrent(loop, infohash, filename, bootstrap):
             'nodes': n,
             'info': full_metadata
         }
-        with open(filename, 'wb') as f:
-            f.write(bencode(torrent))
+
+        if filename != '':
+            print(1000, filename)
+            with open(filename, 'wb') as f:
+                f.write(bencode(torrent))
+        else:
+            print_torrent(torrent)
 
 def node_type(value):
     if len(value.split(':')) != 2:
@@ -681,6 +709,9 @@ def main():
                         'times to add multiple nodes.')
     parser.add_argument('--version', action='version',
                         version='ih2torrent v' + __version__)
+    parser.add_argument('--display', '-d', action='store_true',
+                        help='Print the metainfo to stdout instead of writing '
+                        'a torrent file.')
 
     args = parser.parse_args()
 
@@ -699,6 +730,9 @@ def main():
 
     if not args.file:
         args.file = args.infohash + '.torrent'
+
+    if args.display:
+        args.file = ''
 
     args.infohash = args.infohash.upper()
 
