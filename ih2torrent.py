@@ -19,7 +19,7 @@ from random import randint
 from binascii import hexlify
 from bencodepy import encode as bencode, decode as bdecode, DecodingError
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 HANDSHAKE = 1
 MESSAGE_LEN = 2
@@ -667,7 +667,6 @@ def ih2torrent(loop, infohash, filename, bootstrap):
         }
 
         if filename != '':
-            print(1000, filename)
             with open(filename, 'wb') as f:
                 f.write(bencode(torrent))
         else:
