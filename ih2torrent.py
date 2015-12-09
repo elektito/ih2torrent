@@ -667,8 +667,11 @@ def ih2torrent(loop, infohash, filename, bootstrap):
         }
 
         if filename != '':
-            with open(filename, 'wb') as f:
-                f.write(bencode(torrent))
+            try:
+                with open(filename, 'wb') as f:
+                    f.write(bencode(torrent))
+            except IOError as e:
+                logger.error('Error writing torrent file: {}'.format(e))
         else:
             print_torrent(torrent)
 
