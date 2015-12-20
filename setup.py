@@ -4,11 +4,13 @@ try:
     from setuptools.core import setup
 except ImportError:
     from distutils.core import setup
-from ih2torrent import __version__ as version
 from pip.req import parse_requirements
 from pip.download import PipSession
 
 import pypandoc
+
+with open('version.py') as f:
+    exec(f.read())
 
 # convert markdown to reStructured Text
 rst = pypandoc.convert('README.md', 'rst', format='markdown')
@@ -25,13 +27,13 @@ setup(
     name = 'ih2torrent',
     py_modules = ["ih2torrent"],
     install_requires = requirements,
-    version = version,
+    version = __version__,
     description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',
     author = 'Mostafa Razavi',
     license = "GPL",
     author_email = 'mostafa@sepent.com',
     url = 'https://github.com/elektito/ih2torrent',
-    download_url = 'https://github.com/elektito/ih2torrent/tarball/' + version,
+    download_url = 'https://github.com/elektito/ih2torrent/tarball/' + __version__,
     keywords = ['bittorrent', 'torrent', 'infohash', 'magnet', 'dht', 'metadata', 'metainfo', 'asyncio'],
     classifiers = [
         "Programming Language :: Python :: 3"

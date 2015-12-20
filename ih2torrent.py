@@ -18,8 +18,7 @@ from socket import inet_aton, inet_ntoa
 from random import randint
 from binascii import hexlify
 from bencodepy import encode as bencode, decode as bdecode, DecodingError
-
-__version__ = '0.1.6'
+from version import __version__
 
 HANDSHAKE = 1
 MESSAGE_LEN = 2
