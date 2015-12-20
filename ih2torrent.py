@@ -19,7 +19,7 @@ from random import randint
 from binascii import hexlify
 from bencodepy import encode as bencode, decode as bdecode, DecodingError
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 HANDSHAKE = 1
 MESSAGE_LEN = 2
