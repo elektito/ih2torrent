@@ -7,14 +7,25 @@ except ImportError:
 from pip.req import parse_requirements
 from pip.download import PipSession
 
+try:
+    import pypandoc
+    have_pypandoc = True
+except ImportError:
+    have_pypandoc = False
+
 with open('version.py') as f:
     exec(f.read())
 
-# convert markdown to reStructured Text
-rst = pypandoc.convert('README.md', 'rst', format='markdown')
+if have_pypandoc:
+    # convert markdown to reStructured Text
+    rst = pypandoc.convert('README.md', 'rst', format='markdown')
+else:
+    print('You don\'t have pypandoc. Copying README.md as README.rst '
+          'though it will not look good.')
+    rst = open('README.md').read()
 
-# writes converted file
-with open('README.rst','w') as outfile:
+# write the converted README file
+with open('README.rst', 'w') as outfile:
     outfile.write(rst)
 
 # read requirements from requirements.txt
