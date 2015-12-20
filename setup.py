@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+try:
+    from setuptools.core import setup
+except ImportError:
+    from distutils.core import setup
 from ih2torrent import __version__ as version
-from distutils.core import setup
 from pip.req import parse_requirements
 from pip.download import PipSession
 
