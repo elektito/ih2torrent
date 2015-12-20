@@ -7,8 +7,6 @@ except ImportError:
 from pip.req import parse_requirements
 from pip.download import PipSession
 
-import pypandoc
-
 with open('version.py') as f:
     exec(f.read())
 
