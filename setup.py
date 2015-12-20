@@ -28,6 +28,7 @@ setup(
     version = version,
     description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',
     author = 'Mostafa Razavi',
+    license = "GPL",
     author_email = 'mostafa@sepent.com',
     url = 'https://github.com/elektito/ih2torrent',
     download_url = 'https://github.com/elektito/ih2torrent/tarball/' + version,
