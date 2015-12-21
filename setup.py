@@ -34,7 +34,7 @@ requirements = [str(r.req) for r in requirements]
 
 setup(
     name = 'ih2torrent',
-    py_modules = ["ih2torrent"],
+    py_modules = ['ih2torrent', 'version'],
     install_requires = requirements,
     version = __version__,
     description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',

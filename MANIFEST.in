@@ -2,5 +2,4 @@ include Makefile
 include requirements.txt
 include LICENSE.txt
 include README.rst
-include version.py
 include README.md
