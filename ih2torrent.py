@@ -374,10 +374,9 @@ class DhtProtocol:
         logger.debug('Retrying...')
         self.send_message()
 
-@asyncio.coroutine
-def ping(loop, host, port):
+async def ping(loop, host, port):
     try:
-        transport, protocol = yield from loop.create_datagram_endpoint(
+        transport, protocol = await loop.create_datagram_endpoint(
             lambda: DhtProtocol('ping', nodeid=nodeid, loop=loop),
             remote_addr=(host, port))
     except OSError as e:
@@ -385,7 +384,7 @@ def ping(loop, host, port):
 
     for i in range(RETRIES):
         try:
-            yield from asyncio.wait_for(
+            await asyncio.wait_for(
                 protocol.reply_received.wait(),
                 timeout=TIMEOUT)
         except asyncio.TimeoutError:
@@ -401,14 +400,13 @@ def ping(loop, host, port):
         logger.debug('No reply received.')
     return protocol.reply_received.is_set()
 
-@asyncio.coroutine
-def get_peers(loop, host, port, infohash):
+async def get_peers(loop, host, port, infohash):
     global get_peers_in_progress
     get_peers_in_progress += 1
 
     try:
         try:
-            transport, protocol = yield from loop.create_datagram_endpoint(
+            transport, protocol = await loop.create_datagram_endpoint(
                 lambda: DhtProtocol('get_peers', nodeid=nodeid, infohash=infohash),
                 remote_addr=(host, port))
         except OSError as e:
@@ -417,7 +415,7 @@ def get_peers(loop, host, port, infohash):
 
         for i in range(RETRIES):
             try:
-                yield from asyncio.wait_for(
+                await asyncio.wait_for(
                     protocol.reply_received.wait(),
                     timeout=5)
             except asyncio.TimeoutError:
@@ -437,27 +435,25 @@ def get_peers(loop, host, port, infohash):
                     logger.debug('Invalid peer "{}". Ignored.'.format(repr(p)))
                 else:
                     all_peers.add(p)
-                    yield from values.put(p)
+                    await values.put(p)
         elif b'nodes' in protocol.reply:
             peers = protocol.reply[b'nodes']
             peers = [peers[i:i+26] for i in range(0, len(peers), 26)]
             for p in peers:
-                yield from nodes.put(p[20:])
+                await nodes.put(p[20:])
     finally:
         get_peers_in_progress -= 1
 
-@asyncio.coroutine
-def dns_resolve(loop, name):
+async def dns_resolve(loop, name):
     logger.info('Resolving: {}'.format(name))
     try:
-        result = yield from resolver.query(name, 'A')
+        result = await resolver.query(name, 'A')
     except aiodns.error.DNSError as e:
         raise RuntimeError('Could not resolve name:', name)
 
     return result[0].host
 
-@asyncio.coroutine
-def get_metadata(loop, host, port, infohash):
+async def get_metadata(loop, host, port, infohash):
     global metadata, metadata_size, keep_running, full_metadata, get_metadatas_in_progress
 
     if not keep_running:
@@ -469,7 +465,7 @@ def get_metadata(loop, host, port, infohash):
         logger.info('Getting metadata from: {}:{}'.format(host, port))
 
         try:
-            transport, protocol = yield from loop.create_connection(
+            transport, protocol = await loop.create_connection(
                 lambda: BitTorrentProtocol(infohash, nodeid), host, port)
         except OSError as e:
             logger.debug('Connection error: {}'.format(e))
@@ -477,7 +473,7 @@ def get_metadata(loop, host, port, infohash):
 
         logger.debug('Connected to peer: {}:{}'.format(host, port))
 
-        done, pending = yield from asyncio.wait(
+        done, pending = await asyncio.wait(
             [protocol.handshake_complete.wait(),
              protocol.error.wait()],
             return_when=FIRST_COMPLETED,
@@ -491,7 +487,7 @@ def get_metadata(loop, host, port, infohash):
             transport.close()
             return False
 
-        done, pending = yield from asyncio.wait(
+        done, pending = await asyncio.wait(
             [protocol.extended_handshake_complete.wait(),
              protocol.error.wait()],
             return_when=FIRST_COMPLETED,
@@ -524,7 +520,7 @@ def get_metadata(loop, host, port, infohash):
 
             protocol.get_metadata_block(i)
 
-            done, pending = yield from asyncio.wait(
+            done, pending = await asyncio.wait(
                 [protocol.metadata_block_received.wait(),
                  protocol.error.wait()],
                 return_when=FIRST_COMPLETED,
@@ -561,10 +557,9 @@ def get_metadata(loop, host, port, infohash):
 
     return True
 
-@asyncio.coroutine
-def get_metadata_with_retries(loop, host, port, infohash):
+async def get_metadata_with_retries(loop, host, port, infohash):
     for i in range(RETRIES):
-        ret = yield from get_metadata(loop, host, port, infohash)
+        ret = await get_metadata(loop, host, port, infohash)
         if ret:
             break
 
@@ -600,8 +595,7 @@ def print_torrent(torrent):
             length = f[b'length']
             print('{}{}: {} byte(s)'.format(2 * indent, filename, length))
 
-@asyncio.coroutine
-def ih2torrent(loop, infohash, filename, bootstrap):
+async def ih2torrent(loop, infohash, filename, bootstrap):
     global keep_running
 
     logger.info('Using node ID: {}'.format(hexlify(nodeid).decode()))
@@ -609,9 +603,9 @@ def ih2torrent(loop, infohash, filename, bootstrap):
     # Add bootstrapping nodes.
     if bootstrap == []:
         logger.info('Using router.bittorrent.com as the bootstrapping node.')
-        ip = yield from dns_resolve(loop, 'router.bittorrent.com')
+        ip = await dns_resolve(loop, 'router.bittorrent.com')
         logger.info('Resolved to: {}'.format(ip))
-        yield from nodes.put(inet_aton(ip) + struct.pack('!H', 6881))
+        await nodes.put(inet_aton(ip) + struct.pack('!H', 6881))
     else:
         unresolved = []
         for host, port in bootstrap:
@@ -621,17 +615,17 @@ def ih2torrent(loop, infohash, filename, bootstrap):
                     raise ValueError(
                         'Bootstrap node {} not an IPv4 address or hostname.'
                         .format(host))
-                yield from nodes.put(inet_aton(host) + port.to_bytes(2, byteorder='big'))
+                await nodes.put(inet_aton(host) + port.to_bytes(2, byteorder='big'))
             except ValueError:
                 unresolved.append((host, port))
 
         if len(unresolved) > 0:
             logger.info('Resolving {} host name(s).'.format(len(unresolved)))
             tasks = [dns_resolve(loop, host) for host, port in bootstrap]
-            ips = yield from asyncio.gather(*tasks)
+            ips = await asyncio.gather(*tasks)
             for ip, (host, port) in zip(ips, unresolved):
-                yield from nodes.put(inet_aton(ip) +
-                                     port.to_bytes(2, byteorder='big'))
+                await nodes.put(inet_aton(ip) +
+                                port.to_bytes(2, byteorder='big'))
 
 
     # Recursively search for peers.
@@ -639,16 +633,18 @@ def ih2torrent(loop, infohash, filename, bootstrap):
     while keep_running:
         if values.qsize() > 0:
             while values.qsize() > 0:
-                peer = yield from values.get()
+                peer = await values.get()
                 host, port = inet_ntoa(peer[:4]), struct.unpack('!H', peer[4:])[0]
                 loop.create_task(
-                    get_metadata_with_retries(loop, host, port, infohash))
+                    get_metadata_with_retries(loop, host, port, infohash),
+                    name='get-metadata-{}-{}'.format(host, port))
         elif get_peers_in_progress < 100 and get_metadatas_in_progress < 100 and nodes.qsize() > 0:
-            peer = yield from nodes.get()
+            peer = await nodes.get()
             host, port = inet_ntoa(peer[:4]), struct.unpack('!H', peer[4:])[0]
-            loop.create_task(get_peers(loop, host, port, infohash))
+            loop.create_task(get_peers(loop, host, port, infohash),
+                             name='get-peers-{}-{}'.format(host, port))
         else:
-            yield
+            await asyncio.sleep(0)
 
             if get_peers_in_progress == 0 and get_metadatas_in_progress == 0 \
                and nodes.qsize() == 0 and values.qsize() == 0:
@@ -770,12 +766,12 @@ def main():
     except Exception as e:
         print('Unexpected error:', e)
 
-    pending = asyncio.Task.all_tasks()
+    pending = asyncio.all_tasks(loop=loop)
     for task in pending:
         task.cancel()
     try:
         loop.run_until_complete(asyncio.gather(*pending))
-    except CancelledError:
+    except asyncio.exceptions.CancelledError:
         pass
 
     loop.close()
