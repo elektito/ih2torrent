@@ -4,8 +4,6 @@ try:
     from setuptools.core import setup
 except ImportError:
     from distutils.core import setup
-from pip.req import parse_requirements
-from pip.download import PipSession
 
 try:
     import pypandoc
@@ -29,8 +27,8 @@ with open('README.rst', 'w') as outfile:
     outfile.write(rst)
 
 # read requirements from requirements.txt
-requirements = parse_requirements('requirements.txt', session=PipSession())
-requirements = [str(r.req) for r in requirements]
+with open('requirements.txt') as f:
+    requirements = [line.strip() for line in f]
 
 setup(
     name = 'ih2torrent',
