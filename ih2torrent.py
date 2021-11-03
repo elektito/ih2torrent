@@ -385,7 +385,7 @@ async def ping(host, port):
     for i in range(RETRIES):
         try:
             await asyncio.wait_for(
-                protocol.reply_received.wait(),
+                asyncio.create_task(protocol.reply_received.wait()),
                 timeout=TIMEOUT)
         except asyncio.TimeoutError:
             protocol.retry()
@@ -417,7 +417,7 @@ async def get_peers(host, port, infohash):
         for i in range(RETRIES):
             try:
                 await asyncio.wait_for(
-                    protocol.reply_received.wait(),
+                    asyncio.create_task(protocol.reply_received.wait()),
                     timeout=5)
             except asyncio.TimeoutError:
                 protocol.retry()
@@ -476,8 +476,8 @@ async def get_metadata(host, port, infohash):
         logger.debug('Connected to peer: {}:{}'.format(host, port))
 
         done, pending = await asyncio.wait(
-            [protocol.handshake_complete.wait(),
-             protocol.error.wait()],
+            [asyncio.create_task(protocol.handshake_complete.wait()),
+             asyncio.create_task(protocol.error.wait())],
             return_when=FIRST_COMPLETED,
             timeout=TIMEOUT)
 
@@ -490,8 +490,8 @@ async def get_metadata(host, port, infohash):
             return False
 
         done, pending = await asyncio.wait(
-            [protocol.extended_handshake_complete.wait(),
-             protocol.error.wait()],
+            [asyncio.create_task(protocol.extended_handshake_complete.wait()),
+             asyncio.create_task(protocol.error.wait())],
             return_when=FIRST_COMPLETED,
             timeout=TIMEOUT)
 
@@ -523,8 +523,8 @@ async def get_metadata(host, port, infohash):
             protocol.get_metadata_block(i)
 
             done, pending = await asyncio.wait(
-                [protocol.metadata_block_received.wait(),
-                 protocol.error.wait()],
+                [asyncio.create_task(protocol.metadata_block_received.wait()),
+                 asyncio.create_task(protocol.error.wait())],
                 return_when=FIRST_COMPLETED,
                 timeout=TIMEOUT)
 
