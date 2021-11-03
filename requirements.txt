@@ -1,2 +1,2 @@
-aiodns==1.0.0
+aiodns==3.0.0
 bencodepy==0.9.5
