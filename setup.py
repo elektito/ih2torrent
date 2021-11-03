@@ -36,6 +36,7 @@ setup(
     install_requires = requirements,
     version = __version__,
     description = 'Convert a torrent infohash or magnet URI to a .torrent file using DHT and metadata protocol. Asyncio based.',
+    long_description_content_type='text/x-rst',
     author = 'Mostafa Razavi',
     license = "GPL",
     author_email = 'mostafa@sepent.com',
