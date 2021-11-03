@@ -284,8 +284,7 @@ class DhtProtocol:
                  infohash=None,
                  implied_port=None,
                  port=None,
-                 token=None,
-                 loop=None):
+                 token=None):
         self.query_type = query_type
         self.nodeid = nodeid
         self.target = target
@@ -295,7 +294,7 @@ class DhtProtocol:
         self.token = token
 
         self.tid = struct.pack('!H', randint(0, 65535))
-        self.reply_received = asyncio.Event(loop=loop)
+        self.reply_received = asyncio.Event()
 
     def construct_message(self):
         args = {
@@ -374,10 +373,11 @@ class DhtProtocol:
         logger.debug('Retrying...')
         self.send_message()
 
-async def ping(loop, host, port):
+async def ping(host, port):
+    loop = asyncio.get_running_loop()
     try:
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: DhtProtocol('ping', nodeid=nodeid, loop=loop),
+            lambda: DhtProtocol('ping', nodeid=nodeid),
             remote_addr=(host, port))
     except OSError as e:
         logger.debug('Error opening socket for "ping": {}'.format(e))
@@ -400,10 +400,11 @@ async def ping(loop, host, port):
         logger.debug('No reply received.')
     return protocol.reply_received.is_set()
 
-async def get_peers(loop, host, port, infohash):
+async def get_peers(host, port, infohash):
     global get_peers_in_progress
     get_peers_in_progress += 1
 
+    loop = asyncio.get_running_loop()
     try:
         try:
             transport, protocol = await loop.create_datagram_endpoint(
@@ -444,7 +445,7 @@ async def get_peers(loop, host, port, infohash):
     finally:
         get_peers_in_progress -= 1
 
-async def dns_resolve(loop, name):
+async def dns_resolve(name):
     logger.info('Resolving: {}'.format(name))
     try:
         result = await resolver.query(name, 'A')
@@ -453,7 +454,7 @@ async def dns_resolve(loop, name):
 
     return result[0].host
 
-async def get_metadata(loop, host, port, infohash):
+async def get_metadata(host, port, infohash):
     global metadata, metadata_size, keep_running, full_metadata, get_metadatas_in_progress
 
     if not keep_running:
@@ -464,6 +465,7 @@ async def get_metadata(loop, host, port, infohash):
     try:
         logger.info('Getting metadata from: {}:{}'.format(host, port))
 
+        loop = asyncio.get_running_loop()
         try:
             transport, protocol = await loop.create_connection(
                 lambda: BitTorrentProtocol(infohash, nodeid), host, port)
@@ -557,9 +559,9 @@ async def get_metadata(loop, host, port, infohash):
 
     return True
 
-async def get_metadata_with_retries(loop, host, port, infohash):
+async def get_metadata_with_retries(host, port, infohash):
     for i in range(RETRIES):
-        ret = await get_metadata(loop, host, port, infohash)
+        ret = await get_metadata(host, port, infohash)
         if ret:
             break
 
@@ -595,15 +597,17 @@ def print_torrent(torrent):
             length = f[b'length']
             print('{}{}: {} byte(s)'.format(2 * indent, filename, length))
 
-async def ih2torrent(loop, infohash, filename, bootstrap):
-    global keep_running
+async def ih2torrent(infohash, filename, bootstrap):
+    global keep_running, resolver
 
     logger.info('Using node ID: {}'.format(hexlify(nodeid).decode()))
+
+    resolver = aiodns.DNSResolver()
 
     # Add bootstrapping nodes.
     if bootstrap == []:
         logger.info('Using router.bittorrent.com as the bootstrapping node.')
-        ip = await dns_resolve(loop, 'router.bittorrent.com')
+        ip = await dns_resolve('router.bittorrent.com')
         logger.info('Resolved to: {}'.format(ip))
         await nodes.put(inet_aton(ip) + struct.pack('!H', 6881))
     else:
@@ -621,7 +625,7 @@ async def ih2torrent(loop, infohash, filename, bootstrap):
 
         if len(unresolved) > 0:
             logger.info('Resolving {} host name(s).'.format(len(unresolved)))
-            tasks = [dns_resolve(loop, host) for host, port in bootstrap]
+            tasks = [dns_resolve(host) for host, port in bootstrap]
             ips = await asyncio.gather(*tasks)
             for ip, (host, port) in zip(ips, unresolved):
                 await nodes.put(inet_aton(ip) +
@@ -635,14 +639,14 @@ async def ih2torrent(loop, infohash, filename, bootstrap):
             while values.qsize() > 0:
                 peer = await values.get()
                 host, port = inet_ntoa(peer[:4]), struct.unpack('!H', peer[4:])[0]
-                loop.create_task(
-                    get_metadata_with_retries(loop, host, port, infohash),
+                asyncio.create_task(
+                    get_metadata_with_retries(host, port, infohash),
                     name='get-metadata-{}-{}'.format(host, port))
         elif get_peers_in_progress < 100 and get_metadatas_in_progress < 100 and nodes.qsize() > 0:
             peer = await nodes.get()
             host, port = inet_ntoa(peer[:4]), struct.unpack('!H', peer[4:])[0]
-            loop.create_task(get_peers(loop, host, port, infohash),
-                             name='get-peers-{}-{}'.format(host, port))
+            asyncio.create_task(get_peers(host, port, infohash),
+                                name='get-peers-{}-{}'.format(host, port))
         else:
             await asyncio.sleep(0)
 
@@ -757,24 +761,11 @@ def main():
     logger.addHandler(handler)
 
     try:
-        loop = asyncio.get_event_loop()
-        resolver = aiodns.DNSResolver(loop=loop)
-        loop.run_until_complete(ih2torrent(loop, args.infohash, args.file, args.bootstrap))
+        asyncio.run(ih2torrent(args.infohash, args.file, args.bootstrap))
     except KeyboardInterrupt:
         print()
-        print('Letting the remaining tasks finish before termination.')
     except Exception as e:
         print('Unexpected error:', e)
-
-    pending = asyncio.all_tasks(loop=loop)
-    for task in pending:
-        task.cancel()
-    try:
-        loop.run_until_complete(asyncio.gather(*pending))
-    except asyncio.exceptions.CancelledError:
-        pass
-
-    loop.close()
 
 if __name__ == '__main__':
     main()
