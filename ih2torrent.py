@@ -760,6 +760,9 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
 
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     try:
         asyncio.run(ih2torrent(args.infohash, args.file, args.bootstrap))
     except KeyboardInterrupt:
